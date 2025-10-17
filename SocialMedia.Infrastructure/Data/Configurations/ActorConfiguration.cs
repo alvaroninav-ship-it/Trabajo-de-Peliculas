@@ -4,12 +4,12 @@ using Movies.Core.Entities;
 
 namespace Movies.Infrastructure.Data.Configurations
 {
-    public class UserConfiguration : IEntityTypeConfiguration<User>
+    public class ActorConfiguration : IEntityTypeConfiguration<Actor>
     {
-        public void Configure(EntityTypeBuilder<User> builder)
+        public void Configure(EntityTypeBuilder<Actor> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PK_User");
-            builder.ToTable("User");
+            builder.HasKey(e => e.Id).HasName("PK_Actor");
+            builder.ToTable("Actor");
 
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
@@ -26,32 +26,18 @@ namespace Movies.Infrastructure.Data.Configurations
                 .HasMaxLength(255)
                 .IsRequired();
 
-            builder.HasIndex(e => e.Email)
-                .IsUnique()
-                .HasDatabaseName("UQ_User_Email");
-
             builder.Property(e => e.DateOfBirth)
                 .HasColumnType("date");
-
-            builder.Property(e => e.Telephone)
-                .HasMaxLength(20);
 
             builder.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            // Relationships
-            builder.HasMany(d => d.Reviews)
-                .WithOne(p => p.User)
-                .HasForeignKey(p => p.UserId)
+            builder.HasOne(d => d.Movie)
+                .WithMany(p => p.Actors)
+                .HasForeignKey(d => d.MovieId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Review_User");
-
-            builder.HasMany(d => d.Comments)
-                .WithOne(p => p.User)
-                .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Comment_User");
+                .HasConstraintName("FK_Actor_Movie");
         }
     }
 }

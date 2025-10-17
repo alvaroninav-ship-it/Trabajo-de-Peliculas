@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialMedia.Api", "SocialMedia.Api\SocialMedia.Api.csproj", "{68C81B83-856E-44BB-9711-06CFC73C876A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Movies.Api", "SocialMedia.Api\Movies.Api.csproj", "{68C81B83-856E-44BB-9711-06CFC73C876A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialMedia.Infrastructure", "SocialMedia.Infrastructure\SocialMedia.Infrastructure.csproj", "{6F8E95E9-5CF3-4EAB-BBDF-0ADFBC8AAEFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Movies.Infrastructure", "SocialMedia.Infrastructure\Movies.Infrastructure.csproj", "{6F8E95E9-5CF3-4EAB-BBDF-0ADFBC8AAEFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialMedia.Core", "SocialMedia.Core\SocialMedia.Core.csproj", "{E1B433EB-20F0-4313-A832-4DF9B743D900}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Movies.Core", "SocialMedia.Core\Movies.Core.csproj", "{E1B433EB-20F0-4313-A832-4DF9B743D900}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

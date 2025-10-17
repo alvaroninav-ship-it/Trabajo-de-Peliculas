@@ -1,23 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace Movies.Core.Entities;
 
-namespace SocialMedia.Core.Entities;
-
-public partial class Comment
+public partial class Comment : BaseEntity
 {
-    public int Id { get; set; }
+    //public int Id { get; set; }
 
-    public int PostId { get; set; }
+    public int? ReviewId { get; set; }
 
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
 
     public string Description { get; set; } = null!;
 
     public DateTime Date { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool? IsActive { get; set; }
 
-    public virtual Post Post { get; set; } = null!;
+    public virtual Review? Review { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    public virtual User? User { get; set; }
 }

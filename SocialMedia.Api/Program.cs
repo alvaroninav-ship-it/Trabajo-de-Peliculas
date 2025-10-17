@@ -1,10 +1,14 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using SocialMedia.Core.Interfaces;
-using SocialMedia.Infrastructure.Data;
-using SocialMedia.Infrastructure.Mappings;
-using SocialMedia.Infrastructure.Repositories;
+using Movies.Core.Interfaces;
+using Movies.Core.Services;
+using Movies.Infrastructure.Data;
+using Movies.Infrastructure.Filters;
+using Movies.Infrastructure.Mappings;
+using Movies.Infrastructure.Repositories;
+using Movies.Infrastructure.Validators;
 
-namespace SocialMedia.Api
+namespace Movies.Api
 {
     public class Program
     {
@@ -14,7 +18,7 @@ namespace SocialMedia.Api
 
             #region Configurar la BD SqlServer
             var connectionString = builder.Configuration.GetConnectionString("ConnectionSqlServer");
-            builder.Services.AddDbContext<SocialMediaContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<MoviesContext>(options => options.UseSqlServer(connectionString));
             #endregion
 
             #region Configurar la BD MySql
@@ -25,14 +29,46 @@ namespace SocialMedia.Api
 
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+            // Inyectar las dependencias
+            builder.Services.AddScoped<IMovieRepository, MovieRepository>();
+            builder.Services.AddScoped<IMovieServices, MovieServices>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IUserServices, UserServices>();
+            builder.Services.AddScoped<IActorRepository, ActorRepository>();
+            builder.Services.AddScoped<IActorServices, ActorServices>();
+            builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+            builder.Services.AddScoped<ICommentServices, CommentServices>();
+            builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+            builder.Services.AddScoped<IReviewServices, ReviewServices>();
+            builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             // Add services to the container.
-            builder.Services.AddTransient<IPostRepository, PostRepository>();
+            builder.Services.AddControllers().AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+            }).ConfigureApiBehaviorOptions(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
 
-            builder.Services.AddControllers()
-                .AddNewtonsoftJson(options =>
-                {
-                    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
-                });
+            //Validaciones
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<ValidationFilter>();
+            });
+
+            // FluentValidation
+            builder.Services.AddValidatorsFromAssemblyContaining<ActorDtoValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<CommentDtoValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<ReviewDtoValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<UserDtoValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<MovieDtoValidator>();
+
+
+            builder.Services.AddValidatorsFromAssemblyContaining<GetByIdRequestValidator>();
+
+            // Services
+            builder.Services.AddScoped<IValidationService, ValidationService>();
 
             var app = builder.Build();
 
