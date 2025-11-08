@@ -1,62 +1,57 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
 using Movies.Infrastructure.Data;
+using Movies.Infrastructure.Queries;
 
 namespace Movies.Infrastructure.Repositories
 {
-    public class MovieRepository : IMovieRepository
+    public class MovieRepository : BaseRepository<Movie>, IMovieRepository
     {
-        private readonly MoviesContext _context;
-        public MovieRepository(MoviesContext context)
+        private readonly IDapperContext _dapper;
+  
+        public MovieRepository(MoviesContext context, IDapperContext dapper) : base(context)
         {
-            _context = context;
-        }
-        public async Task<IEnumerable<Movie>> GetAllMovieAsync()
-        {
-            var movies = await _context.Movies.ToListAsync();
-            return movies;
+            _dapper = dapper;
         }
 
-        public async Task<Movie> GetMovieAsync(int id)
+        public async Task<Movie> GetMovieByTittle(string title)
         {
-            var movie = await _context.Movies.FirstOrDefaultAsync(
-                x => x.Id == id);
+            var movie = await _entities.FirstOrDefaultAsync(x => x.Title == title);
             return movie;
         }
 
-        public async Task InsertMovieAsync(Movie movie)
+        public async Task<MostFamousMovieForYear> GetMostFamousMovieForYear(int year = 2025)
         {
-            try { 
-            _context.Movies.Add(movie);
-            await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
+            try
             {
-                Console.WriteLine(ex.InnerException?.Message);
+                var sql = MovieQueries.MostFamousMovieForYear;
+
+                return await _dapper.QueryFirstOrDefaultAsync<MostFamousMovieForYear>(sql, new { year = year });
             }
 
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
         }
 
-        public async Task UpdateMovieAsync(Movie movie)
+        public async Task<IEnumerable<Top10MoviesThatHasMostActors>> Gettop10MoviesThatHasMostActors()
         {
-            _context.Movies.Update(movie);
-            await _context.SaveChangesAsync();
-        }
+            try
+            {
+                var sql = MovieQueries.Top10MoviesThatHasMostActors;
 
-        public async Task DeleteMovieAsync(Movie movie)
-        {
+                return await _dapper.QueryAsync<Top10MoviesThatHasMostActors>(sql);
+            }
 
-            _context.Movies.Remove(movie);
-            await _context.SaveChangesAsync();
-
-        }
-
-        public async Task<Movie> GetMovieByTittle(string tittle)
-        {
-            var movie = await _context.Movies.FirstOrDefaultAsync(
-                x => x.Title == tittle);
-            return movie;
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
         }
     }
 }

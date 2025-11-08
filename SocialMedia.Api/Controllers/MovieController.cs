@@ -1,10 +1,13 @@
 ﻿using System.Net;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Api.Response;
+
+using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
+using Movies.Core.QueryFilters;
+using Movies.Core.Services;
 using Movies.Infrastructure.DTOs;
 using Movies.Infrastructure.Validators;
 
@@ -26,125 +29,62 @@ namespace Movies.Api.Controllers
             _validationService = validationService;
         }
 
-        #region Sin DTOs
-        [HttpGet]
-        public async Task<IActionResult> GetMovie()
-        {
-            var movies = await _movieServices.GetAllMovieAsync();
-            return Ok(movies);
-        }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetMovieId(int id)
-        {
-            var movie = await _movieServices.GetMovieAsync(id);
-            return Ok(movie);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> InsertMovie(Movie movie)
-        {
-            await _movieServices.InsertMovieAsync(movie);
-            return Ok(movie);
-        }
-        #endregion
-
-        #region Con DTO
-        [HttpGet("dto")]
-        public async Task<IActionResult> GetMoviesDto()
-        {
-            var movies = await _movieServices.GetAllMovieAsync();
-            var moviesDto = movies.Select(m => new MovieDto
-            {
-                Id = m.Id,
-                Title=m.Title,
-                Description=m.Description,
-                ReleaseDate=m.ReleaseDate.ToString("dd-mm-yyyy"),
-                Genre=m.Genre,
-                Length=m.Length
-                ,
-            });
-
-            return Ok(moviesDto);
-        }
-
-        [HttpGet("dto/{id}")]
-        public async Task<IActionResult> GetMovieIdDto(int id)
-        {
-            var movie = await _movieServices.GetMovieAsync(id);
-            var movieDto = new MovieDto
-            {
-                Id = movie.Id,
-                Title = movie.Title,
-                Description = movie.Description,
-                ReleaseDate = movie.ReleaseDate.ToString("dd-mm-yyyy"),
-                Genre = movie.Genre,
-                Length = movie.Length
-            };
-
-            return Ok(movieDto);
-        }
-
-        [HttpPost("dto")]
-        public async Task<IActionResult> InsertMovieDto(MovieDto movieDto)
-        {
-            var movie = new Movie
-            {
-                Id = movieDto.Id,
-                Title = movieDto.Title,
-                Description = movieDto.Description,
-                ReleaseDate = Convert.ToDateTime(movieDto.ReleaseDate),
-                Genre = movieDto.Genre,
-                Length = movieDto.Length
-            };
-
-            await _movieServices.InsertMovieAsync(movie);
-            return Ok(movie);
-        }
-
-        [HttpPut("dto/{id}")]
-        public async Task<IActionResult> UpdateMovieDto(int id,
-            [FromBody] MovieDto movieDto)
-        {
-            if (id != movieDto.Id)
-                return BadRequest("El Id de la pelicula no coincide");
-
-            var movie = await _movieServices.GetMovieAsync(id);
-            if (movie == null)
-                return NotFound("Pelicula no encontrada");
-
-            movie.Id = movieDto.Id;
-            movie.Title = movieDto.Title;
-            movie.Description = movieDto.Description;
-            movie.ReleaseDate = Convert.ToDateTime(movieDto.ReleaseDate);
-            movie.Genre = movieDto.Genre;
-            movie.Length = movieDto.Length;
-
-            await _movieServices.UpdateMovieAsync(movie);
-            return Ok(movie);
-        }
-
-        [HttpDelete("dto/{id}")]
-        public async Task<IActionResult> UpdateMovieDto(int id)
-        {
-            var movie = await _movieServices.GetMovieAsync(id);
-            if (movie == null)
-                return NotFound("Pelicula no encontrado");
-
-            await _movieServices.DeleteMovieAsync(movie);
-            return NoContent();
-        }
-        #endregion
 
         #region Dto Mapper
+        /// <summary>
+        /// Recupera una lista paginada de publicaciones como objetos de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir las peliculas recuperadas en DTOs que luego se 
+        /// devuelven en registros paginados
+        /// </remarks>
+        /// <param name="movieQueryFilter">Los filtros de aplican al recuperar las peliculas como paginacion y busqueda, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se envian los parametros se retornan todos los registros</param>
+        /// <returns>Coleccion o lista de movie</returns>
+        /// <responsecode="200">Retorna todos lo registros</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<MovieDto>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpGet("dto/mapper")]
-        public async Task<IActionResult> GetMoviesDtoMapper()
+        public async Task<IActionResult> GetMovieDtoMapper(
+           [FromQuery] MovieQueryFilter movieQueryFilter, int idAux)
         {
-            var movies = await _movieServices.GetAllMovieAsync();
-            var moviesDto = _mapper.Map<IEnumerable<MovieDto>>(movies);
+            try
+            {
+                var movies = await _movieServices.GetAllMovieAsync(movieQueryFilter);
 
-            return Ok(moviesDto);
+                var moviesDto = _mapper.Map<IEnumerable<MovieDto>>(movies.Pagination);
+
+                var pagination = new Pagination
+                {
+                    TotalCount = movies.Pagination.TotalCount,
+                    PageSize = movies.Pagination.PageSize,
+                    CurrentPage = movies.Pagination.CurrentPage,
+                    TotalPages = movies.Pagination.TotalPages,
+                    HasNextPage = movies.Pagination.HasNextPage,
+                    HasPreviousPage = movies.Pagination.HasPreviousPage
+                };
+                var response = new ApiResponse<IEnumerable<MovieDto>>(moviesDto)
+                {
+                    Pagination = pagination,
+                    Messages = movies.Messages
+                };
+
+                return StatusCode((int)movies.StatusCode, response);
+            }
+            catch (Exception err)
+            {
+                var responsePost = new ResponseData()
+                {
+                    Messages = new Message[] { new() { Type = "Error", Description = err.Message } },
+                };
+                return StatusCode(500, responsePost);
+            }
         }
+
 
 
         [HttpGet("dto/mapper/{id}")]
@@ -241,6 +181,44 @@ namespace Movies.Api.Controllers
 
 
             return NoContent();
+        }
+
+
+        [HttpGet("dapper/1/{year}")]
+        public async Task<IActionResult> GetMostFamousMovieForYear(int year)
+        {
+            var movie = await _movieServices.GetMostFamousMovieForYear(year);
+
+            var response = new ApiResponse<MostFamousMovieForYear>(movie);
+
+            return Ok(response);
+        }
+
+        [HttpGet("dapper/2")]
+        public async Task<IActionResult> Gettop10MoviesThatHasMostActors()
+        {
+            var movies = await _movieServices.Gettop10MoviesThatHasMostActors();
+            var totalCount = movies.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<Top10MoviesThatHasMostActors>>(movies)
+            {
+                Pagination = pagination,
+                Messages = movies.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron peliculas" } }
+            };
+
+            return Ok(response);
         }
         #endregion
     }

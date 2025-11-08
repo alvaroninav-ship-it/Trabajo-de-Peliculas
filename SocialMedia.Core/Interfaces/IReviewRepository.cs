@@ -1,13 +1,13 @@
-﻿using Movies.Core.Entities;
+﻿using Movies.Core.CustomEntities;
+using Movies.Core.Entities;
 
 namespace Movies.Core.Interfaces
 {
-    public interface IReviewRepository
+    public interface IReviewRepository:IBaseRepository<Review>
     {
-        Task<IEnumerable<Review>> GetAllReviewAsync();
-        Task<Review> GetReviewAsync(int id);
-        Task InsertReviewAsync(Review review);
-        Task UpdateReviewAsync(Review review);
-        Task DeleteReviewAsync(Review review);
+        Task<IEnumerable<Top10MostCommentedReviews>> GetTop10MostCommentedReviews();
+        Task<IEnumerable<ReviewsThatWereDoneByUsers20YearsOldOrYounger>> GetReviewsThatWereDoneByUsers20YearsOldOrYounger();
+        Task<IEnumerable<ReviewsThatRefersAnSpecificGenre>> GetReviewsThatRefersAnSpecificGenre(string genre);
+
     }
 }

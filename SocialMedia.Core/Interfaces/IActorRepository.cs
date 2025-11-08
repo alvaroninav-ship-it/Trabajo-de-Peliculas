@@ -1,13 +1,12 @@
-﻿using Movies.Core.Entities;
+﻿using Microsoft.Extensions.Hosting;
+using Movies.Core.CustomEntities;
+using Movies.Core.Entities;
 
 namespace Movies.Core.Interfaces
 {
-    public interface IActorRepository
+    public interface IActorRepository:IBaseRepository<Actor>
     {
-        Task<IEnumerable<Actor>> GetAllActorAsync();
-        Task<Actor> GetActorAsync(int id);
-        Task InsertActorAsync(Actor actor);
-        Task UpdateActorAsync(Actor actor);
-        Task DeleteActorAsync(Actor actor);
+        Task<IEnumerable<Top10TheYoungestActors>> GetTop10TheYoungestActors();
+
     }
 }

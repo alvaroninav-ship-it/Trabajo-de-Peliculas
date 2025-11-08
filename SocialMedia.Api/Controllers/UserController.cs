@@ -1,10 +1,13 @@
 ﻿using System.Net;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Api.Response;
+
+using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
+using Movies.Core.QueryFilters;
+using Movies.Core.Services;
 using Movies.Infrastructure.DTOs;
 using Movies.Infrastructure.Validators;
 
@@ -26,128 +29,62 @@ namespace Movies.Api.Controllers
             _validationService = validationService;
         }
 
-        #region Sin DTOs
-        [HttpGet]
-        public async Task<IActionResult> GetUser()
-        {
-            var users = await _userRepository.GetAllUserAsync();
-            return Ok(users);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserId(int id)
-        {
-            var user = await _userRepository.GetUserAsync(id);
-            return Ok(user);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> InsertUser(User user)
-        {
-            await _userRepository.InsertUserAsync(user);
-            return Ok(user);
-        }
-        #endregion
-
-        #region Con DTO
-        [HttpGet("dto")]
-        public async Task<IActionResult> GetUsersDto()
-        {
-            var users = await _userRepository.GetAllUserAsync();
-            var usersDto = users.Select(u => new UserDto
-            {
-                Id = u.Id,
-                FirstName=u.FirstName,
-                LastName=u.LastName,
-                DateOfBirth=u.DateOfBirth.ToString("dd-mm-yyyy"),
-                Telephone=u.Telephone,
-                Email=u.Email,
-                IsActive=u.IsActive,
-            });
-
-            return Ok(usersDto);
-        }
-
-        [HttpGet("dto/{id}")]
-        public async Task<IActionResult> GetUserIdDto(int id)
-        {
-            var user = await _userRepository.GetUserAsync(id);
-            var userDto = new UserDto
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                DateOfBirth = user.DateOfBirth.ToString("dd-mm-yyyy"),
-                Telephone = user.Telephone,
-                Email = user.Email,
-                IsActive = user.IsActive,
-            };
-
-            return Ok(userDto);
-        }
-
-        [HttpPost("dto")]
-        public async Task<IActionResult> InsertUserDto(UserDto userDto)
-        {
-            var user = new User
-            {
-                Id = userDto.Id,
-                FirstName = userDto.FirstName,
-                LastName = userDto.LastName,
-                DateOfBirth = Convert.ToDateTime(userDto.DateOfBirth),
-                Telephone = userDto.Telephone,
-                Email = userDto.Email,
-                IsActive = userDto.IsActive,
-            };
-
-            await _userRepository.InsertUserAsync(user);
-            return Ok(user);
-        }
-
-        [HttpPut("dto/{id}")]
-        public async Task<IActionResult> UpdateUserDto(int id,
-            [FromBody] UserDto userDto)
-        {
-            if (id != userDto.Id)
-                return BadRequest("El Id del Usuario no coincide");
-
-            var user = await _userRepository.GetUserAsync(id);
-            if (user == null)
-                return NotFound("Usuario no encontrado");
-
-            user.Id = userDto.Id;
-            user.FirstName = userDto.FirstName;
-            user.LastName = userDto.LastName;
-            user.DateOfBirth = Convert.ToDateTime(userDto.DateOfBirth);
-            user.Telephone = userDto.Telephone;
-            user.Email = userDto.Email;
-            user.IsActive = userDto.IsActive;
-
-            await _userRepository.UpdateUserAsync(user);
-            return Ok(user);
-        }
-
-        [HttpDelete("dto/{id}")]
-        public async Task<IActionResult> UpdateUserDto(int id)
-        {
-            var user = await _userRepository.GetUserAsync(id);
-            if (user == null)
-                return NotFound("User no encontrado");
-
-            await _userRepository.DeleteUserAsync(user);
-            return NoContent();
-        }
-        #endregion
+      
 
         #region Dto Mapper
+        /// <summary>
+        /// Recupera una lista paginada de publicaciones como objetos de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir las peliculas recuperadas en DTOs que luego se 
+        /// devuelven en registros paginados
+        /// </remarks>
+        /// <param name="userQueryFilter">Los filtros de aplican al recuperar las peliculas como paginacion y busqueda, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se envian los parametros se retornan todos los registros</param>
+        /// <returns>Coleccion o lista de movie</returns>
+        /// <responsecode="200">Retorna todos lo registros</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<UserDto>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpGet("dto/mapper")]
-        public async Task<IActionResult> GetUsersDtoMapper()
+        public async Task<IActionResult> GetUserDtoMapper(
+           [FromQuery] UserQueryFilter userQueryFilter, int idAux)
         {
-            var users = await _userRepository.GetAllUserAsync();
-            var usersDto = _mapper.Map<IEnumerable<UserDto>>(users);
+            try
+            {
+                var movies = await _userRepository.GetAllUserAsync(userQueryFilter);
 
-            return Ok(usersDto);
+                var moviesDto = _mapper.Map<IEnumerable<UserDto>>(movies.Pagination);
+
+                var pagination = new Pagination
+                {
+                    TotalCount = movies.Pagination.TotalCount,
+                    PageSize = movies.Pagination.PageSize,
+                    CurrentPage = movies.Pagination.CurrentPage,
+                    TotalPages = movies.Pagination.TotalPages,
+                    HasNextPage = movies.Pagination.HasNextPage,
+                    HasPreviousPage = movies.Pagination.HasPreviousPage
+                };
+                var response = new ApiResponse<IEnumerable<UserDto>>(moviesDto)
+                {
+                    Pagination = pagination,
+                    Messages = movies.Messages
+                };
+
+                return StatusCode((int)movies.StatusCode, response);
+            }
+            catch (Exception err)
+            {
+                var responsePost = new ResponseData()
+                {
+                    Messages = new Message[] { new() { Type = "Error", Description = err.Message } },
+                };
+                return StatusCode(500, responsePost);
+            }
         }
+
 
 
         [HttpGet("dto/mapper/{id}")]
@@ -246,6 +183,84 @@ namespace Movies.Api.Controllers
             return NoContent();
         }
 
+        [HttpGet("dapper/1")]
+        public async Task<IActionResult> GetTop10UsersMostCommentedInTheirReview()
+        {
+            var users = await _userRepository.GetTop10UsersMostCommentedInTheirReview();
+            var totalCount = users.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<Top10UsersMostCommentedInTheirReview>>(users)
+            {
+                Pagination = pagination,
+                Messages = users.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron usuarios" } }
+            };
+            return Ok(response);
+        }
+        [HttpGet("dapper/2")]
+        public async Task<IActionResult> GetTop10UsersThatHasDoneMoreComments()
+        {
+            var users = await _userRepository.GetTop10UsersThatHasDoneMoreComments();
+
+            var totalCount = users.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<Top10UsersThatHasDoneMoreComments>>(users)
+            {
+                Pagination = pagination,
+                Messages = users.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron usuarios" } }
+            };
+            return Ok(response);
+        }
+        [HttpGet("dapper/3")]
+        public async Task<IActionResult> GetUsersThatReviewLastYearMovies()
+        {
+            var users = await _userRepository.GetUsersThatReviewLastYearMovies();
+
+            var totalCount = users.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<UsersThatReviewLastYearMovies>>(users)
+            {
+                Pagination = pagination,
+                Messages = users.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron usuarios" } }
+            };
+
+            return Ok(response);
+        }
         #endregion
     }
 }

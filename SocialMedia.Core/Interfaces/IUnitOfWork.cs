@@ -1,24 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data;
 using Movies.Core.Entities;
 
 namespace Movies.Core.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {
-        IBaseRepository<Review> ReviewRepository { get; }
-        IBaseRepository<User> UserRepository { get; }   
-        IBaseRepository<Movie> MovieRepository { get; }
+        IReviewRepository ReviewRepository { get; }
+        IUserRepository UserRepository { get; }   
+        IMovieRepository MovieRepository { get; }
         IBaseRepository<Comment> CommentRepository { get; }
-        IBaseRepository<Actor> ActorRepository { get; }
+        IActorRepository ActorRepository { get; }
 
         void SaveChanges();
         Task SaveChangesAsync();
 
 
+        Task BeginTransactionAsync();
 
+        Task CommintTrasaction();
+
+        Task RollBackTransaction();
+
+        // nuevos miembros 
+
+        IDbConnection? GetdbConnection();
+
+        IDbTransaction? GetDbTransaction();
     }
 }

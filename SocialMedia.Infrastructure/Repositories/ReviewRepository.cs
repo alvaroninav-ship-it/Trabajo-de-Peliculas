@@ -1,55 +1,65 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
 using Movies.Infrastructure.Data;
+using Movies.Infrastructure.Queries;
 
 namespace Movies.Infrastructure.Repositories
 {
-    public class ReviewRepository:IReviewRepository
+    public class ReviewRepository: BaseRepository<Review>, IReviewRepository
     {
         private readonly MoviesContext _context;
-        public ReviewRepository(MoviesContext context)
+        private readonly IDapperContext _dapper;
+        public ReviewRepository(MoviesContext context, IDapperContext dapper) : base(context)
         {
-            _context = context;
+            _dapper = dapper;
+            //_context = context;
         }
 
-        public async Task<IEnumerable<Review>> GetAllReviewAsync()
-        {
-            var reviews = await _context.Reviews.ToListAsync();
-            return reviews;
-        }
-
-        public async Task<Review> GetReviewAsync(int id)
-        {
-            var review = await _context.Reviews.FirstOrDefaultAsync(
-                x => x.Id == id);
-            return review;
-        }
-
-        public async Task InsertReviewAsync(Review review)
+        public async Task<IEnumerable<ReviewsThatRefersAnSpecificGenre>> GetReviewsThatRefersAnSpecificGenre(string genre=" ")
         {
             try
             {
-                _context.Reviews.Add(review);
-                await _context.SaveChangesAsync();
+                var sql = ReviewQueries.ReviewsThatRefersAnSpecificGenre;
+
+                return await _dapper.QueryAsync<ReviewsThatRefersAnSpecificGenre>(sql, new { genre = genre });
             }
-            catch (DbUpdateException ex)
+
+            catch (Exception err)
             {
-                Console.WriteLine(ex.InnerException?.Message);
+                throw new Exception(err.Message);
             }
         }
 
-        public async Task UpdateReviewAsync(Review review)
+        public async Task<IEnumerable<ReviewsThatWereDoneByUsers20YearsOldOrYounger>> GetReviewsThatWereDoneByUsers20YearsOldOrYounger()
         {
-            _context.Reviews.Update(review);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var sql = ReviewQueries.ReviewsThatWereDoneByUsers20YearsOldOrYounger;
+
+                return await _dapper.QueryAsync<ReviewsThatWereDoneByUsers20YearsOldOrYounger>(sql);
+            }
+
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
         }
 
-        public async Task DeleteReviewAsync(Review review)
+        public async Task<IEnumerable<Top10MostCommentedReviews>> GetTop10MostCommentedReviews()
         {
-            _context.Reviews.Remove(review);
-            await _context.SaveChangesAsync();
-        }
+            try
+            {
+                var sql = ReviewQueries.Top10MostCommentedReviews;
 
+                return await _dapper.QueryAsync<Top10MostCommentedReviews>(sql);
+            }
+
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
+        }
     }
 }

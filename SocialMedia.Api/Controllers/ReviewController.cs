@@ -1,10 +1,13 @@
 ﻿using System.Net;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Api.Response;
+
+using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
+using Movies.Core.QueryFilters;
+using Movies.Core.Services;
 using Movies.Infrastructure.DTOs;
 using Movies.Infrastructure.Validators;
 
@@ -26,124 +29,62 @@ namespace Movies.Api.Controllers
             _validationService = validationService;
         }
 
-        #region Sin DTOs
-        [HttpGet]
-        public async Task<IActionResult> GetReview()
-        {
-            var reviews = await _reviewServices.GetAllReviewAsync();
-            return Ok(reviews);
-        }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetReviewId(int id)
-        {
-            var review = await _reviewServices.GetReviewAsync(id);
-            return Ok(review);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> InsertReview(Review review)
-        {
-            await _reviewServices.InsertReviewAsync(review);
-            return Ok(review);
-        }
-        #endregion
-
-        #region Con DTO
-        [HttpGet("dto")]
-        public async Task<IActionResult> GetReviewsDto()
-        {
-            var reviews = await _reviewServices.GetAllReviewAsync();
-            var reviewsDto = reviews.Select(r => new ReviewDto
-            {
-                Id = r.Id,
-                UserId = r.UserId,
-                MovieId=r.MovieId,
-                Date = r.Date.ToString("dd-mm-yyyy"),
-                Description = r.Description,
-                Grade=r.Grade,
-            });
-
-            return Ok(reviewsDto);
-        }
-
-        [HttpGet("dto/{id}")]
-        public async Task<IActionResult> GetReviewIdDto(int id)
-        {
-            var review = await _reviewServices.GetReviewAsync(id);
-            var reviewDto = new ReviewDto
-            {
-                Id = review.Id,
-                UserId = review.UserId,
-                MovieId=review.MovieId,
-                Date = review.Date.ToString("dd-mm-yyyy"),
-                Description = review.Description,
-                Grade = review.Grade,
-            };
-
-            return Ok(reviewDto);
-        }
-
-        [HttpPost("dto")]
-        public async Task<IActionResult> InsertReviewDto(ReviewDto reviewDto)
-        {
-            var review = new Review
-            {
-                Id = reviewDto.Id,
-                UserId = reviewDto.UserId,
-                MovieId=reviewDto.MovieId,
-                Date = Convert.ToDateTime(reviewDto.Date),
-                Description = reviewDto.Description,
-                Grade = reviewDto.Grade,
-            };
-
-            await _reviewServices.InsertReviewAsync(review);
-            return Ok(review);
-        }
-
-        [HttpPut("dto/{id}")]
-        public async Task<IActionResult> UpdateReviewDto(int id,
-            [FromBody] ReviewDto reviewDto)
-        {
-            if (id != reviewDto.Id)
-                return BadRequest("El Id de la critica no coincide");
-
-            var review = await _reviewServices.GetReviewAsync(id);
-            if (review == null)
-                return NotFound("Critica no encontrado");
-
-            review.Id = reviewDto.Id;
-            review.UserId = reviewDto.UserId;
-            review.MovieId = reviewDto.MovieId;
-            review.Date = Convert.ToDateTime(reviewDto.Date);
-            review.Description = reviewDto.Description;
-            review.Grade = reviewDto.Grade;
-
-            await _reviewServices.UpdateReviewAsync(review);
-            return Ok(review);
-        }
-
-        [HttpDelete("dto/{id}")]
-        public async Task<IActionResult> UpdateReviewDto(int id)
-        {
-            var review = await _reviewServices.GetReviewAsync(id);
-            if (review == null)
-                return NotFound("Critica no encontrado");
-
-            await _reviewServices.DeleteReviewAsync(review);
-            return NoContent();
-        }
-        #endregion
 
         #region Dto Mapper
+        /// <summary>
+        /// Recupera una lista paginada de publicaciones como objetos de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir las peliculas recuperadas en DTOs que luego se 
+        /// devuelven en registros paginados
+        /// </remarks>
+        /// <param name="reviewQueryFilter">Los filtros de aplican al recuperar las peliculas como paginacion y busqueda, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se envian los parametros se retornan todos los registros</param>
+        /// <returns>Coleccion o lista de review</returns>
+        /// <responsecode="200">Retorna todos lo registros</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<ReviewDto>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpGet("dto/mapper")]
-        public async Task<IActionResult> GetReviewsDtoMapper()
+        public async Task<IActionResult> GetReviewDtoMapper(
+           [FromQuery] ReviewQueryFilter reviewQueryFilter, int idAux)
         {
-            var reviews = await _reviewServices.GetAllReviewAsync();
-            var reviewsDto = _mapper.Map<IEnumerable<ReviewDto>>(reviews);
+            try
+            {
+                var reviews = await _reviewServices.GetAllReviewAsync(reviewQueryFilter);
 
-            return Ok(reviewsDto);
+                var reviewsDto = _mapper.Map<IEnumerable<ReviewDto>>(reviews.Pagination);
+
+                var pagination = new Pagination
+                {
+                    TotalCount = reviews.Pagination.TotalCount,
+                    PageSize = reviews.Pagination.PageSize,
+                    CurrentPage = reviews.Pagination.CurrentPage,
+                    TotalPages = reviews.Pagination.TotalPages,
+                    HasNextPage = reviews.Pagination.HasNextPage,
+                    HasPreviousPage = reviews.Pagination.HasPreviousPage
+                };
+                var response = new ApiResponse<IEnumerable<ReviewDto>>(reviewsDto)
+                {
+                    Pagination = pagination,
+                    Messages = reviews.Messages
+                };
+
+                return StatusCode((int)reviews.StatusCode, response);
+            }
+            catch (Exception err)
+            {
+                var responsePost = new ResponseData()
+                {
+                    Messages = new Message[] { new() { Type = "Error", Description = err.Message } },
+                };
+                return StatusCode(500, responsePost);
+            }
         }
+
 
 
         [HttpGet("dto/mapper/{id}")]
@@ -248,6 +189,86 @@ namespace Movies.Api.Controllers
 
 
             return NoContent();
+        }
+
+        [HttpGet("dapper/1/{genre}")]
+        public async Task<IActionResult> GetReviewsThatRefersAnSpecificGenre(string genre)
+        {
+            var reviews = await _reviewServices.GetReviewsThatRefersAnSpecificGenre(genre);
+
+            var totalCount = reviews.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<ReviewsThatRefersAnSpecificGenre>>(reviews)
+            {
+                Pagination = pagination,
+                Messages = reviews.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron criticas" } }
+            };
+            return Ok(response);
+        }
+        [HttpGet("dapper/2")]
+        public async Task<IActionResult> GetReviewsThatWereDoneByUsers20YearsOldOrYounger()
+        {
+            var reviews = await _reviewServices.GetReviewsThatWereDoneByUsers20YearsOldOrYounger();
+
+            var totalCount = reviews.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<ReviewsThatWereDoneByUsers20YearsOldOrYounger>>(reviews)
+            {
+                Pagination = pagination,
+                Messages = reviews.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron criticas" } }
+            };
+            return Ok(response);
+        }
+        [HttpGet("dapper/3")]
+        public async Task<IActionResult> GetTop10MostCommentedReviews()
+        {
+            var reviews = await _reviewServices.GetTop10MostCommentedReviews();
+
+            var totalCount = reviews.Count();
+            var pagination = new Pagination
+            {
+                TotalCount = totalCount,
+                PageSize = 10,
+                CurrentPage = 1,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false
+            };
+
+            // 3️⃣ Crear respuesta API
+            var response = new ApiResponse<IEnumerable<Top10MostCommentedReviews>>(reviews)
+            {
+                Pagination = pagination,
+                Messages = reviews.Any()
+                    ? null
+                    : new[] { new Message { Type = "Warning", Description = "No se encontraron criticas" } }
+            };
+
+            return Ok(response);
         }
         #endregion
     }

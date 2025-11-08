@@ -1,54 +1,65 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
 using Movies.Infrastructure.Data;
+using Movies.Infrastructure.Queries;
 
 namespace Movies.Infrastructure.Repositories
 {
-    public class UserRepository:IUserRepository
+    public class UserRepository: BaseRepository<User>, IUserRepository
     {
         private readonly MoviesContext _context;
-        public UserRepository(MoviesContext context)
+        private readonly IDapperContext _dapper;
+        public UserRepository(MoviesContext context, IDapperContext dapper) : base(context)
         {
-            _context = context;
+            _dapper = dapper;
+            //_context = context;
         }
 
-        public async Task<IEnumerable<User>> GetAllUserAsync()
-        {
-            var users = await _context.Users.ToListAsync();
-            return users;
-        }
-
-        public async Task<User> GetUserAsync(int id)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(
-                x => x.Id == id);
-            return user;
-        }
-
-        public async Task InsertUserAsync(User user)
+        public async Task<IEnumerable<UsersThatReviewLastYearMovies>> GetUsersThatReviewLastYearMovies()
         {
             try
             {
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                var sql = UserQueries.UsersThatReviewLastYearMovies;
+
+                return await _dapper.QueryAsync<UsersThatReviewLastYearMovies>(sql);
             }
-            catch (DbUpdateException ex)
+
+            catch (Exception err)
             {
-                Console.WriteLine(ex.InnerException?.Message);
+                throw new Exception(err.Message);
             }
         }
 
-        public async Task UpdateUserAsync(User user)
+        public async Task<IEnumerable<Top10UsersMostCommentedInTheirReview>> GetTop10UsersMostCommentedInTheirReview()
         {
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var sql = UserQueries.Top10UsersMostCommentedInTheirReview;
+
+                return await _dapper.QueryAsync<Top10UsersMostCommentedInTheirReview>(sql);
+            }
+
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
         }
 
-        public async Task DeleteUserAsync(User user)
+        public async Task<IEnumerable<Top10UsersThatHasDoneMoreComments>> GetTop10UsersThatHasDoneMoreComments()
         {
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var sql = UserQueries.Top10UsersThatHasDoneMoreComments;
+
+                return await _dapper.QueryAsync<Top10UsersThatHasDoneMoreComments>(sql);
+            }
+
+            catch (Exception err)
+            {
+                throw new Exception(err.Message);
+            }
         }
     }
 }

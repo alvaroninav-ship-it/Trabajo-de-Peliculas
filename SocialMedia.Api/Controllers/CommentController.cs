@@ -1,10 +1,12 @@
 ﻿using System.Net;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Api.Response;
+using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
 using Movies.Core.Interfaces;
+using Movies.Core.QueryFilters;
+using Movies.Core.Services;
 using Movies.Infrastructure.DTOs;
 using Movies.Infrastructure.Validators;
 
@@ -26,124 +28,59 @@ namespace Movies.Api.Controllers
             _validationService = validationService;
         }
 
-        #region Sin DTOs
-        [HttpGet]
-        public async Task<IActionResult> GetComment()
-        {
-            var comments = await _commentServices.GetAllCommentAsync();
-            return Ok(comments);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCommentId(int id)
-        {
-            var comment = await _commentServices.GetCommentAsync(id);
-            return Ok(comment);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> InsertComment(Comment comment)
-        {
-            await _commentServices.InsertCommentAsync(comment);
-            return Ok(comment);
-        }
-        #endregion
-
-        #region Con DTO
-        [HttpGet("dto")]
-        public async Task<IActionResult> GetCommentDto()
-        {
-            var comments = await _commentServices.GetAllCommentAsync();
-            var commentsDto = comments.Select(c => new CommentDto
-            {
-                Id = c.Id,
-                ReviewId = c.ReviewId,
-                UserId = c.UserId,
-                Description = c.Description,
-                Date = c.Date.ToString("dd-mm-yyyy"),
-                IsActive = c.IsActive,
-            });
-
-            return Ok(commentsDto);
-        }
-
-        [HttpGet("dto/{id}")]
-        public async Task<IActionResult> GetCommentIdDto(int id)
-        {
-            var comment = await _commentServices.GetCommentAsync(id);
-            var commentDto = new CommentDto
-            {
-                Id = comment.Id,
-                ReviewId = comment.ReviewId,
-                UserId = comment.UserId,
-                Description = comment.Description,
-                Date = comment.Date.ToString("dd-mm-yyyy"),
-                IsActive = comment.IsActive,
-            };
-
-            return Ok(commentDto);
-        }
-
-        [HttpPost("dto")]
-        public async Task<IActionResult> InsertCommentDto(CommentDto commentDto)
-        {
-            var comment = new Comment
-            {
-                Id = commentDto.Id,
-                ReviewId = commentDto.ReviewId,
-                UserId = commentDto.UserId,
-                Description = commentDto.Description,
-                Date = Convert.ToDateTime(commentDto.Date),
-                IsActive = commentDto.IsActive,
-            };
-
-            await _commentServices.InsertCommentAsync(comment);
-            return Ok(comment);
-        }
-
-        [HttpPut("dto/{id}")]
-        public async Task<IActionResult> UpdateCommentDto(int id,
-            [FromBody] CommentDto commentDto)
-        {
-            if (id != commentDto.Id)
-                return BadRequest("El Id del comentario no coincide");
-
-            var comment = await _commentServices.GetCommentAsync(id);
-            if (comment == null)
-                return NotFound("comentario no encontrado");
-
-            comment.Id = commentDto.Id;
-            comment.ReviewId = commentDto.ReviewId;
-            comment.UserId = commentDto.UserId;
-            comment.Description = commentDto.Description;
-            comment.Date = Convert.ToDateTime(commentDto.Date);
-            comment.IsActive = commentDto.IsActive;
-           
-
-            await _commentServices.UpdateCommentAsync(comment);
-            return Ok(comment);
-        }
-
-        [HttpDelete("dto/{id}")]
-        public async Task<IActionResult> UpdateCommentDto(int id)
-        {
-            var comment = await _commentServices.GetCommentAsync(id);
-            if (comment == null)
-                return NotFound("Comentario no encontrado");
-
-            await _commentServices.DeleteCommentAsync(comment);
-            return NoContent();
-        }
-        #endregion
 
         #region Dto Mapper
+        /// <summary>
+        /// Recupera una lista paginada de publicaciones como objetos de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir las publicaciones recuperadas en DTOs que luego se 
+        /// devuelven en registros paginados
+        /// </remarks>
+        /// <param name="commentQueryFilter">Los filtros de aplican al recuperar los comentarios como la paginacion y busqueda, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se envian los parametros se retornan todos los registros</param>
+        /// <returns>Coleccion o lista de comment</returns>
+        /// <responsecode="200">Retorna todos lo registros</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<CommentDto>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpGet("dto/mapper")]
-        public async Task<IActionResult> GetCommentsDtoMapper()
+        public async Task<IActionResult> GetActorDtoMapper(
+           [FromQuery] CommentQueryFilter commentQueryFilter, int idAux)
         {
-            var comments = await _commentServices.GetAllCommentAsync();
-            var commentsDto = _mapper.Map<IEnumerable<CommentDto>>(comments);
+            try
+            {
+                var comments = await _commentServices.GetAllCommentAsync(commentQueryFilter);
 
-            return Ok(commentsDto);
+                var commentsDto = _mapper.Map<IEnumerable<CommentDto>>(comments.Pagination);
+
+                var pagination = new Pagination
+                {
+                    TotalCount = comments.Pagination.TotalCount,
+                    PageSize = comments.Pagination.PageSize,
+                    CurrentPage = comments.Pagination.CurrentPage,
+                    TotalPages = comments.Pagination.TotalPages,
+                    HasNextPage = comments.Pagination.HasNextPage,
+                    HasPreviousPage = comments.Pagination.HasPreviousPage
+                };
+                var response = new ApiResponse<IEnumerable<CommentDto>>(commentsDto)
+                {
+                    Pagination = pagination,
+                    Messages = comments.Messages
+                };
+
+                return StatusCode((int)comments.StatusCode, response);
+            }
+            catch (Exception err)
+            {
+                var responsePost = new ResponseData()
+                {
+                    Messages = new Message[] { new() { Type = "Error", Description = err.Message } },
+                };
+                return StatusCode(500, responsePost);
+            }
         }
 
 
@@ -242,6 +179,7 @@ namespace Movies.Api.Controllers
 
             return NoContent();
         }
+
         #endregion
 
     }

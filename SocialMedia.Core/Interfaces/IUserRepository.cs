@@ -1,13 +1,13 @@
-﻿using Movies.Core.Entities;
+﻿using Movies.Core.CustomEntities;
+using Movies.Core.Entities;
 
 namespace Movies.Core.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserRepository:IBaseRepository<User>
     {
-        Task<IEnumerable<User>> GetAllUserAsync();
-        Task<User> GetUserAsync(int id);
-        Task InsertUserAsync(User user);
-        Task UpdateUserAsync(User user);
-        Task DeleteUserAsync(User user);
+        Task<IEnumerable<Top10UsersMostCommentedInTheirReview>> GetTop10UsersMostCommentedInTheirReview();
+        Task<IEnumerable<UsersThatReviewLastYearMovies>> GetUsersThatReviewLastYearMovies();
+        Task<IEnumerable<Top10UsersThatHasDoneMoreComments>> GetTop10UsersThatHasDoneMoreComments();
+
     }
 }
