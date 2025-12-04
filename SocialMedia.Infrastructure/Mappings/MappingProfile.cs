@@ -18,6 +18,9 @@ namespace Movies.Infrastructure.Mappings
             CreateMap<UserDto, User>();
             CreateMap<Review, ReviewDto>();
             CreateMap<ReviewDto, Review>();
+            CreateMap<Security, SecurityDto>().ReverseMap();
+
+
         }
     }
 }

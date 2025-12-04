@@ -1,10 +1,12 @@
 ﻿using System.Net;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
+using Movies.Core.Enum;
 using Movies.Core.Interfaces;
 using Movies.Core.QueryFilters;
 using Movies.Infrastructure.DTOs;
@@ -43,11 +45,12 @@ namespace Movies.Api.Controllers
         /// <responsecode="200">Retorna todos lo registros</responsecode>
         /// <responsecode="404">No se encontro el dato</responsecode>
         /// <responsecode="500">Hubo un error al eliminar el dato</responsecode>
-        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        /// <responsecode="400">Error por mal ingreso del dato</responsecode>
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<ActorDto>>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.Provider)}")]
         [HttpGet("dto/mapper")]
         public async Task<IActionResult> GetActorDtoMapper(
            [FromQuery] ActorQueryFilter actorQueryFilter,int idAux)
@@ -104,6 +107,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.Provider)}")]
         [HttpGet("dto/mapper/{id}")]
         public async Task<IActionResult> GetActorsDtoMapperId(int id,int idAux)
         {
@@ -130,22 +134,22 @@ namespace Movies.Api.Controllers
         }
 
         /// <summary>
-        /// Recupera una lista paginada de publicaciones como objetos de transferencia de datos segun filtro
+        /// Insertar un objeto enviado en formato json para ser agregado y registrado
         /// </summary>
         /// <remarks>
-        /// Este metodo se utiliza para convertir los actores recuperadas en DTOs que luego se 
-        /// devuelven en registros paginados
+        /// Este metodo se usa para insertar un objeto enviado en formato json
         /// </remarks>
-        /// <param name="actorDto">Los filtros de aplican al recuperar los actores como la paginacion y busqueda, 
+        /// <param name="actorDto">El objeto actor dto que solo permite ingresar datos validos, 
         /// <param name="idAux">Identificador de la tabla</param>>
-        /// si no se envian los parametros se retornan todos los registros</param>
-        /// <returns>Coleccion o lista de actor</returns>
+        /// <returns>El objeto insertado retornado</returns>
         /// <responsecode="200">Retorna el registro insertado</responsecode>
         /// <responsecode="500">Hubo un error al insertar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Actor>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = nameof(RoleType.Provider))]
         [HttpPost("dto/mapper/")]
         public async Task<IActionResult> InsertActorDtoMapper([FromBody] ActorDto actorDto,int idAux)
         {
@@ -181,16 +185,18 @@ namespace Movies.Api.Controllers
         /// Este metodo se utiliza actualizar un actor por envio de datos nuevos pero el id no cambia
         /// </remarks>
         /// <param name="actorDto">El actorDto que se manda para actualizar a un Actor existente registrado, 
+        /// <param name="id">Identificador unico de el objeto a actualizar</param>
         /// <param name="idAux">Identificador de la tabla</param>>
         /// <returns>Un objeto actor actualizado</returns>
         /// <responsecode="200">El actor fue actualizado con los datos enviados</responsecode>
         /// <responsecode="404">No se encontro el dato</responsecode>
-        /// <responsecode="500">Hubo un error al eliminar el dato</responsecode>
+        /// <responsecode="500">Hubo un error al actualizar el dato</responsecode>
         /// <responsecode="404">Error por mal ingreso del dato</responsecode>
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Actor>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = nameof(RoleType.Provider))]
         [HttpPut("dto/mapper/{id}")]
         public async Task<IActionResult> UpdateActorDtoMapper(int id,
             [FromBody] ActorDto actorDto,int idAux)
@@ -267,6 +273,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<Top10TheYoungestActors>>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.Provider)}")]
         [HttpGet("dapper/1")]
         public async Task<IActionResult> GetTop10TheYoungestActors(int idAux)
         {

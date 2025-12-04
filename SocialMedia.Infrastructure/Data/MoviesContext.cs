@@ -21,6 +21,8 @@ public partial class MoviesContext:DbContext
     public virtual DbSet<Movie> Movies { get; set; }
     public virtual DbSet<Actor> Actors { get; set; }
     public virtual DbSet<Review> Reviews { get; set; }
+    public virtual DbSet<Security> Securities { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

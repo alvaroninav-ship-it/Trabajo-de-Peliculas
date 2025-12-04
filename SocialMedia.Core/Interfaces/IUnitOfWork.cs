@@ -11,6 +11,8 @@ namespace Movies.Core.Interfaces
         IBaseRepository<Comment> CommentRepository { get; }
         IActorRepository ActorRepository { get; }
 
+        ISecurityRepository SecurityRepository { get; }
+
         void SaveChanges();
         Task SaveChangesAsync();
 

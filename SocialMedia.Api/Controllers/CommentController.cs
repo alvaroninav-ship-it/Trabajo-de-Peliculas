@@ -1,9 +1,11 @@
 ﻿using System.Net;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
+using Movies.Core.Enum;
 using Movies.Core.Interfaces;
 using Movies.Core.QueryFilters;
 using Movies.Core.Services;
@@ -46,8 +48,9 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles =nameof(RoleType.Administrator))]
         [HttpGet("dto/mapper")]
-        public async Task<IActionResult> GetActorDtoMapper(
+        public async Task<IActionResult> GetCommentDtoMapper(
            [FromQuery] CommentQueryFilter commentQueryFilter, int idAux)
         {
             try
@@ -83,9 +86,27 @@ namespace Movies.Api.Controllers
             }
         }
 
-
+        /// <summary>
+        /// Recupera un objeto de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir un comment en DTO que luego se 
+        /// devuelve
+        /// </remarks>
+        /// <param name="id">El unico filtro de un id para recuperar a un comentario, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Un objeto comment</returns>
+        /// <responsecode="200">Retorna el comentario correctamente</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al buscar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<CommentDto>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles =nameof(RoleType.Administrator))]
         [HttpGet("dto/mapper/{id}")]
-        public async Task<IActionResult> GetCommentsDtoMapperId(int id)
+        public async Task<IActionResult> GetCommentsDtoMapperId(int id,int idAux)
         {
             #region Validaciones
             var validationRequest = new GetByIdRequest { Id = id };
@@ -109,8 +130,25 @@ namespace Movies.Api.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Insertar un objeto enviado en formato json para ser agregado y registrado
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se usa para insertar un objeto enviado en formato json
+        /// </remarks>
+        /// <param name="commentDto">El objeto comment dto que solo permite ingresar datos validos, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>El objeto insertado retornado</returns>
+        /// <responsecode="200">Retorna el registro insertado</responsecode>
+        /// <responsecode="500">Hubo un error al insertar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Comment>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpPost("dto/mapper/")]
-        public async Task<IActionResult> InsertCommentDtoMapper([FromBody] CommentDto commentDto)
+        public async Task<IActionResult> InsertCommentDtoMapper([FromBody] CommentDto commentDto,int idAux)
         {
             try
             {
@@ -137,9 +175,28 @@ namespace Movies.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Actualiza los datos de un comentario existente por su id
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza actualizar un comentario por envio de datos nuevos pero el id no cambia
+        /// </remarks>
+        /// <param name="commentDto">El commentDto que se manda para actualizar a un comentario existente registrado,
+        /// <param name="id">El identificador unico del objeto a actualizar</param>
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Un objeto actor actualizado</returns>
+        /// <responsecode="200">El comentario fue actualizado con los datos enviados</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al actualizar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Comment>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpPut("dto/mapper/{id}")]
         public async Task<IActionResult> UpdateCommentDtoMapper(int id,
-            [FromBody] CommentDto commentDto)
+            [FromBody] CommentDto commentDto,int idAux)
         {
             try
             {
@@ -167,8 +224,27 @@ namespace Movies.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Elimina a un objeto actor de los registros
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para eliminar a un objeto comentario
+        /// </remarks>
+        /// <param name="id">El id con el cual se buscara al objeto para eliminarlo, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se encuentra se manda no encontrado</param>
+        /// <returns>No hay contenido de vuelta</returns>
+        /// <responsecode="200">El objeto fue eliminado</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al eliminar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpDelete("dto/mapper/{id}")]
-        public async Task<IActionResult> DeleteCommentDtoMapper(int id)
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
+        public async Task<IActionResult> DeleteCommentDtoMapper(int id, int idAux)
         {
             var comment = await _commentServices.GetCommentAsync(id);
             if (comment == null)

@@ -1,8 +1,11 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Movies.Core.CustomEntities;
 using Movies.Core.Interfaces;
 using Movies.Core.Services;
 using Movies.Infrastructure.Data;
@@ -10,6 +13,8 @@ using Movies.Infrastructure.Filters;
 using Movies.Infrastructure.Mappings;
 using Movies.Infrastructure.Repositories;
 using Movies.Infrastructure.Validators;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Identity.Web;
 
 namespace Movies.Api
 {
@@ -20,10 +25,22 @@ namespace Movies.Api
             var builder = WebApplication.CreateBuilder(args);
 
 
+            // Configuraci�n base
+            builder.Configuration.Sources.Clear();
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+
+            // User Secrets solo en desarrollo
             if (builder.Environment.IsDevelopment())
             {
                 builder.Configuration.AddUserSecrets<Program>();
+                Console.WriteLine("User Secrets habilitados para desarrollo");
             }
+
+            // Variables de entorno (para producci�n)
+            builder.Configuration.AddEnvironmentVariables();
+
 
             // En produccion los secretos vendran en entornos globales
             #region Configurar la BD SqlServer
@@ -50,10 +67,14 @@ namespace Movies.Api
             builder.Services.AddScoped<ICommentServices, CommentServices>();
             builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
             builder.Services.AddScoped<IReviewServices, ReviewServices>();
+            builder.Services.AddScoped<ISecurityService, SecurityService>();
             builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddSingleton<IDBConnectionFactory, DbConnectionFactory>();
             builder.Services.AddScoped<IDapperContext, DapperContext>();
+            builder.Services.AddSingleton<IPasswordService, PasswordService>();
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
             // Add services to the container.
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
             {
@@ -74,6 +95,8 @@ namespace Movies.Api
                 options.SuppressModelStateInvalidFilter = true;
             });
 
+            builder.Services.Configure<PasswordOptions>
+            (builder.Configuration.GetSection("PasswordOptions"));
 
 
             //Validaciones
@@ -122,6 +145,34 @@ namespace Movies.Api
                 );
             });
 
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters =
+                    new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Authentication:Issuer"],
+                        ValidAudience = builder.Configuration["Authentication:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            System.Text.Encoding.UTF8.GetBytes(
+                                builder.Configuration["Authentication:SecretKey"]
+                            )
+                        )
+                    };
+            });
+
+           
+
+
             // FluentValidation
             builder.Services.AddValidatorsFromAssemblyContaining<ActorDtoValidator>();
             builder.Services.AddValidatorsFromAssemblyContaining<CommentDtoValidator>();
@@ -133,25 +184,46 @@ namespace Movies.Api
             builder.Services.AddValidatorsFromAssemblyContaining<GetByIdRequestValidator>();
 
             // Services
+
+
+            builder.Services.Configure<PasswordOptions>
+                (builder.Configuration.GetSection("PasswordOptions"));
+
+            // Configuraci�n base
+            builder.Configuration.Sources.Clear();
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables(); // �ESTO ES CLAVE PARA AZURE
+
+
+
+
             builder.Services.AddScoped<IValidationService, ValidationService>();
 
             var app = builder.Build();
 
             //Usar Swagger
 
-            if (app.Environment.IsDevelopment()){
-                app.UseSwagger();
-                app.UseSwaggerUI(options =>
-                {
-                    options.SwaggerEndpoint("","");
-                });
-            }
+            //Usar Swagger
+            //if (app.Environment.IsDevelopment())
+            //{
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Backend Social Media API v1");
+                options.RoutePrefix = string.Empty;
+            });
+            //}
+
 
             // Configure the HTTP request pipeline.
 
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
+
+            app.UseAuthentication();
 
 
             app.MapControllers();

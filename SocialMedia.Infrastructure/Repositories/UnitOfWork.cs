@@ -23,6 +23,8 @@ namespace Movies.Infrastructure.Repositories
         public readonly IBaseRepository<Comment>? _commentRepository;
         public readonly IActorRepository _actorRepository;
         public readonly IDapperContext _dapper;
+        private readonly ISecurityRepository _securityRepository;
+
 
         private IDbContextTransaction? _efTransaction;
         public UnitOfWork(MoviesContext context, IDapperContext dapper)
@@ -44,6 +46,11 @@ namespace Movies.Infrastructure.Repositories
 
         public IActorRepository ActorRepository =>
             _actorRepository ?? new ActorRepository(_context, _dapper);
+
+        public ISecurityRepository SecurityRepository =>
+           _securityRepository ?? new SecurityRepository(_context);
+
+
 
         public void Dispose()
         {

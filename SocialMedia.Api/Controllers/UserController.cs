@@ -1,10 +1,12 @@
 ﻿using System.Net;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Movies.Api.Responses;
 using Movies.Core.CustomEntities;
 using Movies.Core.Entities;
+using Movies.Core.Enum;
 using Movies.Core.Interfaces;
 using Movies.Core.QueryFilters;
 using Movies.Core.Services;
@@ -48,6 +50,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpGet("dto/mapper")]
         public async Task<IActionResult> GetUserDtoMapper(
            [FromQuery] UserQueryFilter userQueryFilter, int idAux)
@@ -86,9 +89,27 @@ namespace Movies.Api.Controllers
         }
 
 
-
+        /// <summary>
+        /// Recupera un objeto de transferencia de datos segun filtro
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para convertir un usuario en DTO que luego se 
+        /// devuelve
+        /// </remarks>
+        /// <param name="id">El unico filtro de un id para recuperar a un usuario, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Un objeto usuario</returns>
+        /// <responsecode="200">Retorna el usuario correctamente</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al buscar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpGet("dto/mapper/{id}")]
-        public async Task<IActionResult> GetUsersDtoMapperId(int id)
+        public async Task<IActionResult> GetUsersDtoMapperId(int id,int idAux)
         {
             #region Validaciones
             var validationRequest = new GetByIdRequest { Id = id };
@@ -112,8 +133,24 @@ namespace Movies.Api.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Insertar un objeto enviado en formato json para ser agregado y registrado
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se usa para insertar un objeto enviado en formato json
+        /// </remarks>
+        /// <param name="userDto">El objeto user dto que solo permite ingresar datos validos, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>El objeto insertado retornado</returns>
+        /// <responsecode="200">Retorna el registro insertado</responsecode>
+        /// <responsecode="500">Hubo un error al insertar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Actor>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         [HttpPost("dto/mapper/")]
-        public async Task<IActionResult> InsertUserDtoMapper([FromBody] UserDto userDto)
+        public async Task<IActionResult> InsertUserDtoMapper([FromBody] UserDto userDto, int idAux)
         {
             try
             {
@@ -140,6 +177,26 @@ namespace Movies.Api.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Actualiza los datos de un usuario existente por su id
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza actualizar un usuario por envio de datos nuevos pero el id no cambia
+        /// </remarks>
+        /// <param name="reviewDto">El UserDto que se manda para actualizar a un usuario existente registrada,
+        /// <param name="id">El identificador unico del objeto a actualizar</param>
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Un objeto usuario actualizado</returns>
+        /// <responsecode="200">El usuario fue actualizado con los datos enviados</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al actualizar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<User>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = nameof(RoleType.User))]
         [HttpPut("dto/mapper/{id}")]
         public async Task<IActionResult> UpdateUserDtoMapper(int id,
             [FromBody] UserDto userDto)
@@ -170,8 +227,27 @@ namespace Movies.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Elimina a un objeto actor de los registros
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para eliminar a un objeto user
+        /// </remarks>
+        /// <param name="id">El id con el cual se buscara al objeto para eliminarlo, 
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// si no se encuentra se manda no encontrado</param>
+        /// <returns>No hay contenido de vuelta</returns>
+        /// <responsecode="200">El objeto fue eliminado</responsecode>
+        /// <responsecode="404">No se encontro el dato</responsecode>
+        /// <responsecode="500">Hubo un error al eliminar el dato</responsecode>
+        /// <responsecode="404">Error por mal ingreso del dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpDelete("dto/mapper/{id}")]
-        public async Task<IActionResult> DeleteCommentDtoMapper(int id)
+        public async Task<IActionResult> DeleteUserDtoMapper(int id, int idAux)
         {
             var user = await _userRepository.GetUserAsync(id);
             if (user == null)
@@ -183,8 +259,23 @@ namespace Movies.Api.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Obtiene los usuarios que mas respuestas han obtenido en base a sus criticas
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para obtener un reporte acerca de los usuarios mas respondidos
+        /// </remarks>
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Una coleccion usuarios que han sido mas respondidas o mas famosas</returns>
+        /// <responsecode="200">Coleccion de datos</responsecode>
+        /// <responsecode="404">No se encontraron los dato</responsecode>
+        /// <responsecode="500">Hubo un error al encontrar los dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<Top10UsersMostCommentedInTheirReview>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpGet("dapper/1")]
-        public async Task<IActionResult> GetTop10UsersMostCommentedInTheirReview()
+        public async Task<IActionResult> GetTop10UsersMostCommentedInTheirReview(int idAux)
         {
             var users = await _userRepository.GetTop10UsersMostCommentedInTheirReview();
             var totalCount = users.Count();
@@ -208,8 +299,24 @@ namespace Movies.Api.Controllers
             };
             return Ok(response);
         }
+
+        /// <summary>
+        /// Obtiene los usuarios que mas han participado en la comunidad en base a sus comentarios hechos
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para obtener un reporte acerca de los usuarios que mas han participado en las reviews de otros usuarios
+        /// </remarks>
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Una coleccion usuarios que mas comentarios han realizado</returns>
+        /// <responsecode="200">Coleccion de datos</responsecode>
+        /// <responsecode="404">No se encontraron los dato</responsecode>
+        /// <responsecode="500">Hubo un error al encontrar los dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<Top10UsersThatHasDoneMoreComments>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpGet("dapper/2")]
-        public async Task<IActionResult> GetTop10UsersThatHasDoneMoreComments()
+        public async Task<IActionResult> GetTop10UsersThatHasDoneMoreComments(int idAux)
         {
             var users = await _userRepository.GetTop10UsersThatHasDoneMoreComments();
 
@@ -234,8 +341,24 @@ namespace Movies.Api.Controllers
             };
             return Ok(response);
         }
+
+        /// <summary>
+        /// Obtiene los usuarios que han criticado a peliculas del ultimo ano
+        /// </summary>
+        /// <remarks>
+        /// Este metodo se utiliza para obtener un reporte acerca de como los usuarios han participado en este ultimo ano
+        /// </remarks>
+        /// <param name="idAux">Identificador de la tabla</param>>
+        /// <returns>Una coleccion usuarios que comentaron en peliculas del ultimo ano</returns>
+        /// <responsecode="200">Coleccion de datos</responsecode>
+        /// <responsecode="404">No se encontraron los dato</responsecode>
+        /// <responsecode="500">Hubo un error al encontrar los dato</responsecode>
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<UsersThatReviewLastYearMovies>>))]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
         [HttpGet("dapper/3")]
-        public async Task<IActionResult> GetUsersThatReviewLastYearMovies()
+        public async Task<IActionResult> GetUsersThatReviewLastYearMovies(int idAux)
         {
             var users = await _userRepository.GetUsersThatReviewLastYearMovies();
 
