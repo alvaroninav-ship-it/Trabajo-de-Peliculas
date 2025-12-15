@@ -22,5 +22,7 @@ namespace Movies.Infrastructure.DTOs
 
         public bool IsActive { get; set; }
 
+        public string Rol { get; set; } = null!;
+
     }
 }

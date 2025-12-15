@@ -22,6 +22,7 @@ namespace Movies.Infrastructure.Data.Configurations
                 .HasMaxLength(100)
                 .IsRequired();
 
+
             builder.Property(e => e.Email)
                 .HasMaxLength(255)
                 .IsRequired();

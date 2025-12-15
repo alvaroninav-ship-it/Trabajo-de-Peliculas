@@ -5,6 +5,7 @@ using Movies.Core.Entities;
 using Movies.Infrastructure.Data;
 using Movies.Infrastructure.Data.Configurations;
 using Movies.Infrastructure.DTOs;
+using Movies.Core.Enum;
 
 namespace Movies.Infrastructure.Validators
 {
@@ -21,6 +22,7 @@ namespace Movies.Infrastructure.Validators
             RuleFor(x => x.LastName)
                .NotEmpty().WithMessage("El apellido es requerido")
                .MaximumLength(500).WithMessage("La descripción no puede exceder 500 caracteres");
+
 
             // Validar que la fecha pueda ser parseada desde el formato dd-MM-yyyy
             RuleFor(x => x.DateOfBirth)

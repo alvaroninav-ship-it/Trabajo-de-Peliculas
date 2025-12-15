@@ -1,10 +1,14 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Movies.Core.CustomEntities;
 using Movies.Core.Interfaces;
 using Movies.Core.Services;
@@ -13,8 +17,6 @@ using Movies.Infrastructure.Filters;
 using Movies.Infrastructure.Mappings;
 using Movies.Infrastructure.Repositories;
 using Movies.Infrastructure.Validators;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Identity.Web;
 
 namespace Movies.Api
 {
@@ -45,7 +47,17 @@ namespace Movies.Api
             // En produccion los secretos vendran en entornos globales
             #region Configurar la BD SqlServer
             var connectionString = builder.Configuration.GetConnectionString("ConnectionSqlServer");
-            builder.Services.AddDbContext<MoviesContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<MoviesContext>(options =>
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,              // Máximo 5 reintentos
+                        maxRetryDelay: TimeSpan.FromSeconds(10),  // Espera máxima entre reintentos
+                        errorNumbersToAdd: null         // Puedes agregar códigos de error adicionales si quieres
+                    );
+                })
+            );
+
             #endregion
 
             #region Configurar la BD MySql
@@ -112,9 +124,9 @@ namespace Movies.Api
             {
                 options.SwaggerDoc("v1", new()
                 {
-                    Title = "Backend Social Media API",
+                    Title = "Backend MoviesReviews API",
                     Version = "v1",
-                    Description = "Documentacion de la API de Social Media - NET 9",
+                    Description = "Documentacion de la API de MoviesReview - NET 9",
                     Contact = new()
                     {
                         Name = "Equipo de Desarrollo UCB",
@@ -122,13 +134,39 @@ namespace Movies.Api
                     }
                 });
 
+                // Esto mantiene los comentarios XML
                 var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 options.IncludeXmlComments(xmlPath);
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Escribe: Bearer {tu token JWT}"
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
             });
 
 
-           
+
+
             builder.Services.AddApiVersioning(options =>
             {
                 
@@ -211,20 +249,22 @@ namespace Movies.Api
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Backend Social Media API v1");
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Backend MoviesReviews API v1");
                 options.RoutePrefix = string.Empty;
             });
             //}
+           
 
 
             // Configure the HTTP request pipeline.
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+           
 
             app.UseAuthentication();
 
+            app.UseAuthorization();
 
             app.MapControllers();
 

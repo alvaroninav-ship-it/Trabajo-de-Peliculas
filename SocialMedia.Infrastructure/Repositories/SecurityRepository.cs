@@ -8,10 +8,14 @@ public class SecurityRepository : BaseRepository<Security>, ISecurityRepository
 {
     public SecurityRepository(MoviesContext context) : base(context) { }
 
-    public async Task<Security> GetLoginByCredentials(UserLogin login)
+    public async Task<Security> GetLoginByCredentials(UserLogin ulogin)
     {
-        return await _entities.FirstOrDefaultAsync(x => x.Login == login.User
-        && x.Password == login.Password);
+        var user = await _entities.FirstOrDefaultAsync(x => x.Login == ulogin.User);
+        if(user == null)
+        {
+            throw new Exception("No existe el usuario");
+        }
+        return user;
     }
 }
 

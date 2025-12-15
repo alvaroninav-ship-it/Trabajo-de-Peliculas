@@ -33,6 +33,9 @@ namespace Movies.Infrastructure.Data.Configurations
                     x => x.ToString(),
                     x => (RoleType)Enum.Parse(typeof(RoleType), x)
                 );
+
+            builder.Property(e => e.UserId)
+                .IsRequired();
         }
     }
 }

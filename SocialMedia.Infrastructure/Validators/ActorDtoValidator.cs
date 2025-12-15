@@ -22,8 +22,7 @@ namespace Movies.Infrastructure.Validators
                .NotEmpty().WithMessage("El apellido es requerido")
                .MaximumLength(500).WithMessage("El apellido no puede exceder 500 caracteres");
                
-
-
+            
             // Validar que la fecha pueda ser parseada desde el formato dd-MM-yyyy
             RuleFor(x => x.DateOfBirth)
                 .NotEmpty().WithMessage("La fecha es requerida")

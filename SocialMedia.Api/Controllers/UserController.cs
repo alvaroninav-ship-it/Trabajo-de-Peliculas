@@ -145,7 +145,7 @@ namespace Movies.Api.Controllers
         /// <responsecode="200">Retorna el registro insertado</responsecode>
         /// <responsecode="500">Hubo un error al insertar el dato</responsecode>
         /// <responsecode="404">Error por mal ingreso del dato</responsecode>
-        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<Actor>))]
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<User>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]

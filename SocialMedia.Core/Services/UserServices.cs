@@ -91,6 +91,7 @@ namespace Movies.Core.Services
         {
            
             return _unitOfWork.UserRepository.Add(user);
+
         }
 
         public Task UpdateUserAsync(User user)

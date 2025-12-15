@@ -245,6 +245,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.Provider)}")]
         [HttpDelete("dto/mapper/{id}")]
         public async Task<IActionResult> DeleteActorDtoMapper(int id,int idAux)
         {

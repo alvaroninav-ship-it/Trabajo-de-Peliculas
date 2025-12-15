@@ -24,6 +24,7 @@ public partial class MoviesContext:DbContext
     public virtual DbSet<Security> Securities { get; set; }
 
 
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

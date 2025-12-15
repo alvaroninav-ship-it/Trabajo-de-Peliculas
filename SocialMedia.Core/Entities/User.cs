@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Movies.Core.Enum;
 
 namespace Movies.Core.Entities
 {
@@ -52,5 +53,6 @@ namespace Movies.Core.Entities
         /// </summary>
         /// <example>Reviews[]</example>
         public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
     }
 }

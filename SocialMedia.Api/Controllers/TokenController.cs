@@ -75,16 +75,25 @@ namespace SocialMedia.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Authentication(UserLogin userLogin)
         {
-            //Si es un usuario válido
-            var validation = await IsValidUser(userLogin);
-           
-            if (validation.Item1)
+            try
             {
-                var token = GenerateToken(validation.Item2);
-                return Ok(new { token });
-            }
+                //Si es un usuario válido
+                var validation = await IsValidUser(userLogin);
 
-            return NotFound();
+                if (validation.Item1)
+                {
+                    var token = GenerateToken(validation.Item2);
+                    return Ok(new { token });
+                }
+                else
+                {
+                    throw new Exception("Usuario o contraseña incorrecta");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+            }
         }
 
         private async Task<(bool, Security)> IsValidUser(UserLogin login)

@@ -12,9 +12,13 @@ namespace Movies.Core.Entities
     {
         public string Login { get; set; }
         public string Password { get; set; }
+        public int UserId { get; set; }
 
         public string Name { get; set; }
 
         public RoleType Role { get; set; }
+
+        public User user { get; set; }
+
     }
 }

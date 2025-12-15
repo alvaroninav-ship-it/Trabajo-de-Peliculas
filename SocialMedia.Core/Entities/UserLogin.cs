@@ -1,4 +1,6 @@
-﻿namespace Movies.Core.Entities
+﻿
+
+namespace Movies.Core.Entities
 {
     public class UserLogin
     {

@@ -30,13 +30,13 @@ namespace Movies.Infrastructure.Repositories
         public async Task Add(T entity)
         {
             _entities.Add(entity);
-            //await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
         public async Task Update(T entity)
         {
             _entities.Update(entity);
-            //await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
         public async Task Delete(int id)

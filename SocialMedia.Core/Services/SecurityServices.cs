@@ -17,6 +17,11 @@ public class SecurityService : ISecurityService
 
     public async Task RegisterUser(Security security)
     {
+        var User=await _unitOfWork.UserRepository.GetById(security.UserId);
+        if (User == null)
+        {
+            throw new Exception("No existe ese usuario para registrar");
+        }
         await _unitOfWork.SecurityRepository.Add(security);
         await _unitOfWork.SaveChangesAsync();
     }

@@ -279,7 +279,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<MostFamousMovieForYear>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)},{nameof(RoleType.Provider)}")]
         [HttpGet("dapper/1/{year}")]
         public async Task<IActionResult> GetMostFamousMovieForYear(int year,int idAux)
         {
@@ -304,7 +304,7 @@ namespace Movies.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ApiResponse<IEnumerable<Top10MoviesThatHasMostActors>>))]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)}")]
+        [Authorize(Roles = $"{nameof(RoleType.Administrator)},{nameof(RoleType.User)},{nameof(RoleType.Provider)}")]
         [HttpGet("dapper/2")]
         public async Task<IActionResult> Gettop10MoviesThatHasMostActors(int idAux)
         {
